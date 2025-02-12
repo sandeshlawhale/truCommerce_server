@@ -70,7 +70,7 @@ const updateCartQuantity = catchAsync(async (req, res) => {
     await cart.save();
 
     res
-      .status(httpStatus.OK)
+      .status(200)
       .json({ message: "Cart updated successfully", cart });
   } catch (error) {
     console.log(error);

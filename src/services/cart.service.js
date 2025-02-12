@@ -5,28 +5,24 @@ const ApiError = require("../utils/ApiError");
 const httpStatus = require("http-status");
 
 const addItemsToCart = async (userId, productId, quantity) => {
-  // user nahi present to galat id bheji h add krne ke liye
   const user = await User.findById(userId);
   if (!user) {
-    throw new ApiError(httpStatus.status.NOT_FOUND, "User not found");
+    throw new ApiError(httpStatus.NOT_FOUND, "User not found");
   }
 
-  // product nahi h to add hi nahi ho skta
   const product = await Product.findById(productId);
   if (!product) {
-    throw new ApiError(httpStatus.status.NOT_FOUND, "Product not found");
+    throw new ApiError(httpStatus.NOT_FOUND, "Product not found");
   }
 
-  // if the cart is not already present then build a new cart
   let cart = await Cart.findOne({ userId });
   if (!cart) {
     cart = new Cart({ userId, products: [] });
   }
 
-  // if the product which we want to add is already present
-  // then we only need to increase the quantity
+  // Ensure that productId exists before calling toString()
   const itemIndex = cart.products.findIndex(
-    (item) => item.productId.toString() === productId.toString()
+    (item) => item.productId && item.productId.toString() === productId.toString()
   );
   if (itemIndex > -1) {
     cart.products[itemIndex].quantity += quantity;
@@ -38,27 +34,24 @@ const addItemsToCart = async (userId, productId, quantity) => {
   return cart;
 };
 
+
 const removeItemsFromCart = async (userId, productId, quantity) => {
-  // Find the cart for the given user
   const cart = await Cart.findOne({ userId });
   if (!cart) {
     throw new ApiError(httpStatus.NOT_FOUND, "Cart not found");
   }
 
-  // Find the product in the cart
+  // Ensure that productId exists before calling toString()
   const itemIndex = cart.products.findIndex(
-    (item) => item.productId.toString() === productId.toString()
+    (item) => item.productId && item.productId.toString() === productId.toString()
   );
 
-  // Product not found in cart
   if (itemIndex === -1) {
     throw new ApiError(httpStatus.NOT_FOUND, "Product not found in cart");
   }
 
-  // Get current quantity
   const currentQuantity = cart.products[itemIndex].quantity;
 
-  // If given quantity is greater than available quantity
   if (quantity > currentQuantity) {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
@@ -66,14 +59,12 @@ const removeItemsFromCart = async (userId, productId, quantity) => {
     );
   }
 
-  // Reduce the quantity or remove the product if it reaches zero
   if (currentQuantity - quantity === 0) {
-    cart.products.splice(itemIndex, 1); // Remove product from array
+    cart.products.splice(itemIndex, 1);
   } else {
     cart.products[itemIndex].quantity -= quantity;
   }
 
-  // Save updated cart
   await cart.save();
   return cart;
 };
